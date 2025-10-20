@@ -57,8 +57,8 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
 
   const parseDeadlineString = (deadlineStr: string): string[] => {
     if (!deadlineStr) return [];
-    // Extract all "Avant" and "Après" occurrences
-    const matches = deadlineStr.match(/(Avant|Après)/g);
+    // Extract all "Avant", "Après", and "Sur" occurrences
+    const matches = deadlineStr.match(/(Avant|Après|Sur)/g);
     return matches || [];
   };
 
@@ -71,7 +71,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
         "Compteur de blockages": 2,
         "Story Points": 13,
         "Complexité": "2 Trivial 2 Facile 1 Difficile",
-        "Deadline state": "3 Avant 2 Après"
+        "Deadline state": "3 Avant 1 Sur 1 Après"
       },
       {
         "Catégorie": "Exemple 2",
@@ -79,7 +79,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
         "Compteur de blockages": 1,
         "Story Points": 21,
         "Complexité": "3 Facile 5 Difficile",
-        "Deadline state": "5 Avant 3 Après"
+        "Deadline state": "5 Avant 2 Sur 1 Après"
       },
       {
         "Catégorie": "Exemple 3",
@@ -87,7 +87,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
         "Compteur de blockages": 0,
         "Story Points": 8,
         "Complexité": "3 Trivial",
-        "Deadline state": "2 Avant 1 Après"
+        "Deadline state": "2 Avant 1 Sur"
       }
     ];
 

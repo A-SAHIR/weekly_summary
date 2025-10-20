@@ -4,7 +4,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Alert, AlertDescription } from "./ui/alert";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 
 export interface TicketDataEntry {
@@ -60,6 +60,55 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
     // Extract all "Avant" and "Après" occurrences
     const matches = deadlineStr.match(/(Avant|Après)/g);
     return matches || [];
+  };
+
+  const downloadTemplate = () => {
+    // Create sample data for the template
+    const templateData = [
+      {
+        "Catégorie": "Exemple 1",
+        "Compteur des Tickets": 5,
+        "Compteur de blockages": 2,
+        "Story Points": 13,
+        "Complexité": "2 Trivial 2 Facile 1 Difficile",
+        "Deadline state": "3 Avant 2 Après"
+      },
+      {
+        "Catégorie": "Exemple 2",
+        "Compteur des Tickets": 8,
+        "Compteur de blockages": 1,
+        "Story Points": 21,
+        "Complexité": "3 Facile 5 Difficile",
+        "Deadline state": "5 Avant 3 Après"
+      },
+      {
+        "Catégorie": "Exemple 3",
+        "Compteur des Tickets": 3,
+        "Compteur de blockages": 0,
+        "Story Points": 8,
+        "Complexité": "3 Trivial",
+        "Deadline state": "2 Avant 1 Après"
+      }
+    ];
+
+    // Create a new workbook and add the template data
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Données Hebdomadaires");
+
+    // Set column widths for better readability
+    const maxWidth = 25;
+    worksheet['!cols'] = [
+      { wch: maxWidth },
+      { wch: maxWidth },
+      { wch: maxWidth },
+      { wch: 15 },
+      { wch: maxWidth },
+      { wch: maxWidth }
+    ];
+
+    // Generate and download the file
+    XLSX.writeFile(workbook, "template_tickets_hebdomadaires.xlsx");
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,6 +239,16 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
                 <div className="h-2 w-2 rounded-full bg-primary"></div>
                 <span>Deadline state</span>
               </div>
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <Button 
+                onClick={downloadTemplate} 
+                variant="outline" 
+                className="w-full"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger le Modèle Excel
+              </Button>
             </div>
           </CardContent>
         </Card>

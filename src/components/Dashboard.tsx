@@ -22,7 +22,7 @@ const getComplexityColor = (complexity: string[]) => {
 };
 
 const getDeadlineColor = (state: string) => {
-  return state === "Avant" ? "default" : "outline";
+  return state === "Avant" ? "default" : state === "Sur" ? "secondary" : "outline";
 };
 
 export function Dashboard({ ticketData, onEdit }: DashboardProps) {
@@ -36,9 +36,10 @@ export function Dashboard({ ticketData, onEdit }: DashboardProps) {
     item.deadlineState.forEach(state => {
       if (state === "Avant") acc.avant += 1;
       else if (state === "Après") acc.apres += 1;
+      else if (state === "Sur") acc.sur += 1;
     });
     return acc;
-  }, { avant: 0, apres: 0 });
+  }, { avant: 0, apres: 0, sur: 0 });
 
   // Data for charts
   const chartData = ticketData.map(item => ({

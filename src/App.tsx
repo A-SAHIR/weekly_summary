@@ -1,21 +1,21 @@
 import { useState } from "react";
-import { DataEntryForm, TicketDataEntry } from "./components/DataEntryForm";
+import { DataEntryForm, WeeklyData } from "./components/DataEntryForm";
 import { Dashboard } from "./components/Dashboard";
 
 export default function App() {
-  const [ticketData, setTicketData] = useState<TicketDataEntry[] | null>(null);
+  const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null);
 
-  const handleDataSubmit = (data: TicketDataEntry[]) => {
-    setTicketData(data);
+  const handleDataSubmit = (data: WeeklyData) => {
+    setWeeklyData(data);
   };
 
   const handleEdit = () => {
-    setTicketData(null);
+    setWeeklyData(null);
   };
 
-  if (!ticketData) {
+  if (!weeklyData) {
     return <DataEntryForm onSubmit={handleDataSubmit} />;
   }
 
-  return <Dashboard ticketData={ticketData} onEdit={handleEdit} />;
+  return <Dashboard weeklyData={weeklyData} onEdit={handleEdit} />;
 }

@@ -16,8 +16,13 @@ export interface TicketDataEntry {
   deadlineState: string[];
 }
 
+export interface WeeklyData {
+  personName: string;
+  tickets: TicketDataEntry[];
+}
+
 interface DataEntryFormProps {
-  onSubmit: (data: TicketDataEntry[]) => void;
+  onSubmit: (data: WeeklyData) => void;
 }
 
 export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
@@ -25,6 +30,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<boolean>(false);
   const [parsedData, setParsedData] = useState<TicketDataEntry[] | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   const parseComplexityString = (complexityStr: string): string[] => {
     if (!complexityStr) return [];
@@ -40,7 +46,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
       const item = items[i];
       
       // Check if current item is a complexity level
-      if (["Trivial", "Facile", "Difficile"].includes(item)) {
+      if (["Trivial", "Facile", "Moyen", "Difficile"].includes(item)) {
         // Check if previous item is a number (count)
         const prevItem = i > 0 ? items[i - 1] : null;
         const count = prevItem && /^\d+$/.test(prevItem) ? parseInt(prevItem) : 1;
@@ -70,24 +76,24 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
         "Compteur des Tickets": 5,
         "Compteur de blockages": 2,
         "Story Points": 13,
-        "Complexité": "2 Trivial 2 Facile 1 Difficile",
-        "Deadline state": "3 Avant 1 Sur 1 Après"
+        "Complexité": "2 Trivial 1 Facile 1 Moyen 1 Difficile",
+        "Deadline state": "2 Avant 1 Sur 2 Après"
       },
       {
         "Catégorie": "Exemple 2",
         "Compteur des Tickets": 8,
         "Compteur de blockages": 1,
         "Story Points": 21,
-        "Complexité": "3 Facile 5 Difficile",
-        "Deadline state": "5 Avant 2 Sur 1 Après"
+        "Complexité": "3 Facile 2 Moyen 3 Difficile",
+        "Deadline state": "4 Avant 2 Sur 2 Après"
       },
       {
         "Catégorie": "Exemple 3",
         "Compteur des Tickets": 3,
         "Compteur de blockages": 0,
         "Story Points": 8,
-        "Complexité": "3 Trivial",
-        "Deadline state": "2 Avant 1 Sur"
+        "Complexité": "2 Trivial 1 Moyen",
+        "Deadline state": "2 Avant 1 Après"
       }
     ];
 
@@ -111,10 +117,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
     XLSX.writeFile(workbook, "template_tickets_hebdomadaires.xlsx");
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFile = event.target.files?.[0];
-    if (!uploadedFile) return;
-
+  const processFile = (uploadedFile: File) => {
     setFile(uploadedFile);
     setError("");
     setSuccess(false);
@@ -125,9 +128,10 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
       try {
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: "binary" });
-        const sheetName = workbook.SheetNames[0];
+        const sheetName = workbook.SheetNames[0]; // Le nom de la feuille = nom de la personne
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+        console.log("Sheet name (Person name):", sheetName);
         console.log(jsonData);
         
 
@@ -181,6 +185,13 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
 
         setParsedData(validEntries);
         setSuccess(true);
+        
+        // Store the person name (sheet name) with the data
+        const weeklyData: WeeklyData = {
+          personName: sheetName,
+          tickets: validEntries
+        };
+        (window as any).__weeklyData = weeklyData;
       } catch (err) {
         setError("Erreur lors de la lecture du fichier. Assurez-vous qu'il s'agit d'un fichier Excel valide.");
         console.error(err);
@@ -190,9 +201,53 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
     reader.readAsBinaryString(uploadedFile);
   };
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFile = event.target.files?.[0];
+    if (!uploadedFile) return;
+    processFile(uploadedFile);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFile = event.dataTransfer.files[0];
+    if (droppedFile) {
+      // Check if it's an Excel file
+      const fileExtension = droppedFile.name.split('.').pop()?.toLowerCase();
+      if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+        processFile(droppedFile);
+      } else {
+        setError("Veuillez déposer un fichier Excel valide (.xlsx ou .xls)");
+      }
+    }
+  };
+
   const handleSubmit = () => {
     if (parsedData && parsedData.length > 0) {
-      onSubmit(parsedData);
+      const weeklyData = (window as any).__weeklyData as WeeklyData;
+      if (weeklyData) {
+        onSubmit(weeklyData);
+      } else {
+        // Fallback if weeklyData is not stored
+        onSubmit({
+          personName: "Inconnu",
+          tickets: parsedData
+        });
+      }
     }
   };
 
@@ -256,7 +311,16 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+              <div 
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                  isDragging 
+                    ? 'border-primary bg-primary/5 scale-[1.02]' 
+                    : 'border-border hover:border-primary/50'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <Input
                   type="file"
                   accept=".xlsx,.xls"
@@ -268,12 +332,21 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
                   htmlFor="file-upload"
                   className="cursor-pointer flex flex-col items-center gap-2"
                 >
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Upload className="h-6 w-6 text-primary" />
+                  <div className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
+                    isDragging ? 'bg-primary/20' : 'bg-primary/10'
+                  }`}>
+                    <Upload className={`h-6 w-6 transition-colors ${
+                      isDragging ? 'text-primary animate-bounce' : 'text-primary'
+                    }`} />
                   </div>
                   <div>
-                    <p className="text-muted-foreground">
-                      Cliquez pour sélectionner un fichier Excel
+                    <p className={`transition-colors ${
+                      isDragging ? 'text-primary font-medium' : 'text-muted-foreground'
+                    }`}>
+                      {isDragging 
+                        ? 'Déposez le fichier ici' 
+                        : 'Cliquez pour sélectionner ou glissez-déposez un fichier Excel'
+                      }
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
                       Formats acceptés: .xlsx, .xls

@@ -4,28 +4,31 @@ import { Badge } from "./ui/badge";
 import { TicketCheck, AlertCircle, Target, CalendarDays, Edit } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Button } from "./ui/button";
-import { TicketDataEntry } from "./DataEntryForm";
+import { WeeklyData } from "./DataEntryForm";
 
 interface DashboardProps {
-  ticketData: TicketDataEntry[];
+  weeklyData: WeeklyData;
   onEdit: () => void;
 }
 
 const COLORS = ['#646cff', '#22c55e', '#f59e0b', '#ef4444'];
 
-const getComplexityColor = (complexity: string[]) => {
-  const highest = complexity.includes("Difficile") ? "Difficile" : 
-                  complexity.includes("Facile") ? "Facile" : "Trivial";
-  return highest === "Difficile" ? "destructive" : 
-         highest === "Facile" ? "default" : 
-         "secondary";
+const getComplexityColor = (complexity: string) => {
+  if (complexity === "Difficile") return "destructive";
+  if (complexity === "Moyen") return "default";
+  if (complexity === "Facile") return "secondary";
+  return "outline"; // Trivial
 };
 
 const getDeadlineColor = (state: string) => {
-  return state === "Avant" ? "default" : state === "Sur" ? "secondary" : "outline";
+  if (state === "Avant") return "default";
+  if (state === "Sur") return "secondary";
+  return "outline"; // Après
 };
 
-export function Dashboard({ ticketData, onEdit }: DashboardProps) {
+export function Dashboard({ weeklyData, onEdit }: DashboardProps) {
+  const ticketData = weeklyData.tickets;
+  
   // Calculate totals
   const totalTickets = ticketData.reduce((sum, item) => sum + item.tickets, 0);
   const totalBlockages = ticketData.reduce((sum, item) => sum + item.blockages, 0);
@@ -43,7 +46,7 @@ export function Dashboard({ ticketData, onEdit }: DashboardProps) {
 
   // Data for charts
   const chartData = ticketData.map(item => ({
-    name: item.category.split(" ")[0],
+    name: item.category,
     tickets: item.tickets,
     storyPoints: item.storyPoints,
     blockages: item.blockages,
@@ -70,7 +73,7 @@ export function Dashboard({ ticketData, onEdit }: DashboardProps) {
           <div className="flex items-center gap-2">
             <CalendarDays className="h-6 w-6 text-primary" />
             <div>
-              <h2>Résumé Hebdomadaire</h2>
+              <h2>Résumé Hebdomadaire - {weeklyData.personName}</h2>
               <p className="text-muted-foreground text-sm">Semaine passée</p>
             </div>
           </div>
@@ -98,6 +101,9 @@ export function Dashboard({ ticketData, onEdit }: DashboardProps) {
                 <p className="font-medium">{totalBlockages}</p>
               </div>
             </div>
+          </div>
+          
+          <div className="flex gap-2">
             <Button onClick={onEdit} variant="outline" size="sm">
               <Edit className="h-4 w-4 mr-2" />
               Modifier
@@ -116,7 +122,15 @@ export function Dashboard({ ticketData, onEdit }: DashboardProps) {
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-muted-foreground" style={{ fontSize: '12px' }} />
+                  <XAxis 
+                    dataKey="name" 
+                    className="text-muted-foreground" 
+                    style={{ fontSize: '10px' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                  />
                   <YAxis className="text-muted-foreground" style={{ fontSize: '12px' }} />
                   <Tooltip 
                     contentStyle={{ 
@@ -207,11 +221,19 @@ export function Dashboard({ ticketData, onEdit }: DashboardProps) {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
-                        {item.complexity.map((c, i) => (
-                          <Badge key={i} variant={getComplexityColor([c])} className="text-xs">
-                            {c}
-                          </Badge>
-                        ))}
+                        {(() => {
+                          // Compter les complexités sans doublons
+                          const counts = item.complexity.reduce((acc, c) => {
+                            acc[c] = (acc[c] || 0) + 1;
+                            return acc;
+                          }, {} as Record<string, number>);
+                          
+                          return Object.entries(counts).map(([complexity, count]) => (
+                            <Badge key={complexity} variant={getComplexityColor(complexity)} className="text-xs">
+                              {count} {complexity}
+                            </Badge>
+                          ));
+                        })()}
                       </div>
                     </TableCell>
                     <TableCell>

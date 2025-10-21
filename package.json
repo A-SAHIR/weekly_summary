@@ -48,9 +48,11 @@
             "xlsx": "*"
       },
       "devDependencies": {
-          "@types/node": "^20.10.0",
-          "@vitejs/plugin-react-swc": "^3.10.2",
-          "vite": "^4.5.3"
+            "@types/node": "^20.10.0",
+            "@types/react": "^19.2.2",
+            "@types/react-dom": "^19.2.2",
+            "@vitejs/plugin-react-swc": "^3.10.2",
+            "vite": "^4.5.3"
       },
       "scripts": {
             "dev": "vite",

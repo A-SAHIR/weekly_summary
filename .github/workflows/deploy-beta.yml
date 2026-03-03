@@ -1,0 +1,120 @@
+name: Deploy Beta Preview
+
+on:
+  push:
+    branches:
+      - copilot/add-projects-column-functionality
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        with:
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './build'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  comment:
+    runs-on: ubuntu-latest
+    needs: deploy
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const previewUrl = `https://${context.repo.owner}.github.io/${context.repo.repo}/`;
+
+            // Find the open PR for this branch
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${branch}`,
+            });
+
+            if (prs.length === 0) {
+              core.info('No open PR found for this branch — skipping comment.');
+              return;
+            }
+
+            const prNumber = prs[0].number;
+            const body = [
+              '## 🚀 Beta Preview Deployed',
+              '',
+              `**Preview URL:** ${previewUrl}`,
+              '',
+              `Deployed from branch \`${branch}\` — commit \`${context.sha.slice(0, 7)}\`.`,
+              '',
+              '_This preview will be replaced by the production deployment once the PR is merged into master._',
+            ].join('\n');
+
+            // Update existing beta-preview comment if one exists, otherwise create a new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Beta Preview Deployed')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+            }

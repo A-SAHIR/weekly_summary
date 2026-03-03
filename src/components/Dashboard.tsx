@@ -200,6 +200,7 @@ export function Dashboard({ weeklyData, onEdit }: DashboardProps) {
                   <TableHead className="text-center text-sm">SP</TableHead>
                   <TableHead className="text-sm">Complexité</TableHead>
                   <TableHead className="text-sm">Deadline State</TableHead>
+                  <TableHead className="text-sm">Projet</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -241,6 +242,15 @@ export function Dashboard({ weeklyData, onEdit }: DashboardProps) {
                         {item.deadlineState.map((state, i) => (
                           <Badge key={i} variant={getDeadlineColor(state)} className="text-xs">
                             {state}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 flex-wrap">
+                        {item.projects.map((project, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {project.count} {project.name}
                           </Badge>
                         ))}
                       </div>

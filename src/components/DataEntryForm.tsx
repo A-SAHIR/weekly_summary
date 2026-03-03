@@ -7,6 +7,11 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 
+export interface ProjectEntry {
+  name: string;
+  count: number;
+}
+
 export interface TicketDataEntry {
   category: string;
   tickets: number;
@@ -14,6 +19,7 @@ export interface TicketDataEntry {
   storyPoints: number;
   complexity: string[];
   deadlineState: string[];
+  projects: ProjectEntry[];
 }
 
 export interface WeeklyData {
@@ -68,6 +74,33 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
     return matches || [];
   };
 
+  const parseProjectString = (projectStr: string): ProjectEntry[] => {
+    if (!projectStr) return [];
+    const cleanedStr = projectStr.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+    const tokens = cleanedStr.split(/\s+/);
+    const projects: ProjectEntry[] = [];
+    let currentCount = 1;
+    let nameTokens: string[] = [];
+
+    const flush = () => {
+      if (nameTokens.length > 0) {
+        projects.push({ name: nameTokens.join(' '), count: currentCount });
+        nameTokens = [];
+      }
+    };
+
+    for (const token of tokens) {
+      if (/^\d+$/.test(token)) {
+        flush();
+        currentCount = parseInt(token);
+      } else {
+        nameTokens.push(token);
+      }
+    }
+    flush();
+    return projects;
+  };
+
   const downloadTemplate = () => {
     // Create sample data for the template
     const templateData = [
@@ -77,7 +110,8 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
         "Compteur de blockages": 2,
         "Story Points": 13,
         "Complexité": "2 Trivial 1 Facile 1 Moyen 1 Difficile",
-        "Deadline state": "2 Avant 1 Sur 2 Après"
+        "Deadline state": "2 Avant 1 Sur 2 Après",
+        "Projet": "2 Experio V2 3 Mobile"
       },
       {
         "Catégorie": "Exemple 2",
@@ -85,7 +119,8 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
         "Compteur de blockages": 1,
         "Story Points": 21,
         "Complexité": "3 Facile 2 Moyen 3 Difficile",
-        "Deadline state": "4 Avant 2 Sur 2 Après"
+        "Deadline state": "4 Avant 2 Sur 2 Après",
+        "Projet": "5 Experio V2 1 Experio V1 2 Marque Blanche"
       },
       {
         "Catégorie": "Exemple 3",
@@ -93,7 +128,8 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
         "Compteur de blockages": 0,
         "Story Points": 8,
         "Complexité": "2 Trivial 1 Moyen",
-        "Deadline state": "2 Avant 1 Après"
+        "Deadline state": "2 Avant 1 Après",
+        "Projet": "3 Mobile"
       }
     ];
 
@@ -109,6 +145,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
       { wch: maxWidth },
       { wch: maxWidth },
       { wch: 15 },
+      { wch: maxWidth },
       { wch: maxWidth },
       { wch: maxWidth }
     ];
@@ -160,6 +197,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
           const storyPoints = parseInt(row["Story Points"] || row["SP"] || "0");
           const complexityStr = row["Complexité"] || row["Complexite"] || row["Complexity"] || "";
           const deadlineStr = row["Deadline state"] || row["Deadline State"] || row["État Deadline"] || "";
+          const projectStr = row["Projet"] || row["Project"] || row["Projets"] || "";
 
           return {
             category: category.toString(),
@@ -168,6 +206,7 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
             storyPoints: isNaN(storyPoints) ? 0 : storyPoints,
             complexity: parseComplexityString(complexityStr.toString()),
             deadlineState: parseDeadlineString(deadlineStr.toString()),
+            projects: parseProjectString(projectStr.toString()),
           };
         });
 
@@ -293,6 +332,10 @@ export function DataEntryForm({ onSubmit }: DataEntryFormProps) {
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary"></div>
                 <span>Deadline state</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-primary"></div>
+                <span>Projet</span>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t">

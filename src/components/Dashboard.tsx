@@ -11,7 +11,7 @@ interface DashboardProps {
   onEdit: () => void;
 }
 
-const COLORS = ['#646cff', '#22c55e', '#f59e0b', '#ef4444'];
+const COLORS = ['#646cff', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7', '#ec4899', '#84cc16'];
 
 const getComplexityColor = (complexity: string) => {
   if (complexity === "Difficile") return "destructive";
@@ -65,6 +65,19 @@ export function Dashboard({ weeklyData, onEdit }: DashboardProps) {
     value,
   }));
 
+  // Projects distribution
+  const projectCount = ticketData.reduce((acc, item) => {
+    item.projects?.forEach(p => {
+      acc[p.name] = (acc[p.name] || 0) + p.count;
+    });
+    return acc;
+  }, {} as Record<string, number>);
+
+  const projectData = Object.entries(projectCount).map(([name, value]) => ({
+    name,
+    value,
+  }));
+
   return (
     <div className="bg-muted/30 p-4 overflow-hidden">
       <div className="h-full flex flex-col gap-3">
@@ -112,7 +125,7 @@ export function Dashboard({ weeklyData, onEdit }: DashboardProps) {
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {/* Bar Chart */}
           <Card>
             <CardHeader className="py-3 px-4">
@@ -168,6 +181,42 @@ export function Dashboard({ weeklyData, onEdit }: DashboardProps) {
                     style={{ fontSize: '11px' }}
                   >
                     {complexityData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Pie Chart - Projects Distribution */}
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-base">Répartition des Projets</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-3">
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={projectData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    outerRadius={70}
+                    fill="#8884d8"
+                    dataKey="value"
+                    style={{ fontSize: '11px' }}
+                  >
+                    {projectData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
